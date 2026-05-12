@@ -31,7 +31,7 @@ vector<Image> load_mnist_csv(const string& filename, int limit) {
             }
         }
         dataset.push_back(img);
-        if (limit > 0) limit--;
+        if (limit > 0) limit --;
     }
     return dataset;
 }

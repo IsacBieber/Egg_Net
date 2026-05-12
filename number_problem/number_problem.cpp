@@ -46,7 +46,7 @@ int main(void)
         Y_train.push_back(Y);
     }
 
-    Egg_Net egg({787, 64, 10});
+    Egg_Net egg({787, 64, 10}, "CE");
 
     // 【新增】：尝试开机加载记忆！
     bool has_memory = ModelIO::load_model(egg, "egg_net_v1.txt");
@@ -63,6 +63,18 @@ int main(void)
             for (int i = 0; i < X_train.size(); i++) {
                 Matrix Pred = egg.forward(X_train[i]);
                 
+                // --- 奇迹发生的地方 ---
+                db current_loss = 0;
+                if (egg.loss_type == "CE") {
+                    // 传进去的是无边界的狂野得分，出来的是温顺的概率分布 Pred
+                    current_loss = get_loss_ce(Pred, Y_train[i]); 
+                } else {
+                    Matrix diff = Pred - Y_train[i];
+                    current_loss = get_loss_mse(diff);
+                }
+                total_loss += current_loss;
+                
+                // 因为 Pred 如果是 CE 模式已经被洗成了概率，并不影响这里的 max 判断
                 int best_guess = 0;
                 db max_p = Pred.a[0][0];
                 for(int k = 1; k < 10; k++) {
@@ -73,8 +85,8 @@ int main(void)
                 }
                 if (best_guess == dataset[i].label) correct++;
 
+                // 梯度回传：Softmax + CE 的数学奇迹，不管多复杂，偏导永远是干净利落的 P - Y
                 Matrix G = Pred - Y_train[i];
-                total_loss += get_mse_loss(G);
                 egg.backward(G); 
             }
             
@@ -93,15 +105,10 @@ int main(void)
         cout << "\n[*] 侦测到满级账号，已直接跳过 100 轮训练期！" << endl;
     }
     
-    cout << "\n[*] EGG_NET 引擎点火！开始 100 轮地狱梯度下降！" << endl;
-    int epochs = 100; 
-    
-    cout << "\n[!!!] 训练集炼丹大功告成！高维边界已锁定！" << endl;
-
     cout << "\n[*] 正在准备期末考试卷... 提取后 " << test_size << " 张绝对未知数据的特征..." << endl;
     int test_correct = 0;
     
-    for (int i = train_size; i < total_size; i++) {
+    for (int i = train_size; i < total_size; i ++) {
         MathMagic::apply_fft_filter(dataset[i], 12); 
         MathMagic::apply_tv_denoising(dataset[i], 0.05, 30);
         

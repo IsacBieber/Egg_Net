@@ -24,8 +24,8 @@ struct Layer {
         B.set_size(W_row, 1);
         if (linear) {
             db limit = sqrt(6.0 / (W_row + B_row)); 
-            for(int i=0; i<W_row; i++)
-                for(int j=0; j<B_row; j++)
+            for(int i = 0; i < W_row; i ++)
+                for(int j = 0; j < B_row; j ++)
                     W.a[i][j] = dist_rnd(rnd) * limit;
         }
     }
@@ -62,19 +62,20 @@ struct Layer {
 struct Egg_Net {
     int depth;
     vector <Layer> l;
-    
-    Egg_Net (vector<int> dims) {
+    string loss_type;
+
+    Egg_Net (const vector <int> &dims, string loss_type = "MSE") : loss_type(loss_type) {
         depth = (dims.size() - 1) * 2 - 1; 
         l.resize(depth);
         int idx = 0;
         for (int i = 0; i < dims.size() - 1; i ++) {
-            l[idx] = Layer(dims[i+1], dims[i], true); 
+            l[idx] = Layer(dims[i + 1], dims[i], true); 
             l[idx].set_learning_rate(0.01); 
-            idx++;
+            idx ++;
             if (i < dims.size() - 2) {
-                l[idx] = Layer(dims[i+1], dims[i+1], false); 
+                l[idx] = Layer(dims[i + 1], dims[i + 1], false); 
                 l[idx].set_learning_rate(0.01);
-                idx++;
+                idx ++;
             }
         }
     }
@@ -93,8 +94,36 @@ struct Egg_Net {
     }
 };
 
-inline db get_mse_loss(const Matrix& diff) {
+// 经典均方误差 (MSE)
+inline db get_loss_mse(const Matrix& diff) {
     db res = 0;
-    for(int i=0; i<diff.row; i++) res += diff.a[i][0] * diff.a[i][0];
+    for(int i = 0; i < diff.row; i++) res += diff.a[i][0] * diff.a[i][0];
     return res * 0.5;
+}
+
+// 交叉熵 (CE) + 防爆 Softmax 归一化
+// 注意参数 Pred 前面没有 const，我们要原地将得分洗成概率！
+inline db get_loss_ce(Matrix& Pred, const Matrix& Y) {
+    // 1. 寻找最大得分 (防爆处理，防止 e^x 产生 INF)
+    db max_val = Pred.a[0][0];
+    for (int i = 1; i < Pred.row; i++) {
+        if (Pred.a[i][0] > max_val) max_val = Pred.a[i][0];
+    }
+
+    // 2. 原地计算指数并求和
+    db sum_exp = 0;
+    for (int i = 0; i < Pred.row; i++) {
+        Pred.a[i][0] = exp(Pred.a[i][0] - max_val);
+        sum_exp += Pred.a[i][0];
+    }
+
+    // 3. 计算交叉熵损失，并原地覆写为概率 P
+    db loss = 0;
+    for (int i = 0; i < Pred.row; i++) {
+        Pred.a[i][0] /= sum_exp; // 这一步，得分变成了真正的概率分布
+        
+        // 计算 -Y * log(P)，加入 1e-8 防止 log(0) 黑洞
+        loss -= Y.a[i][0] * log(Pred.a[i][0] + 1e-8); 
+    }
+    return loss;
 }

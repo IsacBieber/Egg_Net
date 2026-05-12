@@ -1,0 +1,22 @@
+🛠️ 1. 线性代数核心 (Linear Algebra)
+概念：矩阵求逆与高斯-约当消元法 (Matrix Inversion & Gauss-Jordan Elimination)
+实战背景：解空间的基础。忘记矩阵求逆怎么算时，复习如何通过初等行变换将增广矩阵 $[A | I]$ 化简为 $[I | A^{-1}]$。
+学习重点：矩阵相乘的几何意义（空间变换）、满秩的概念、高斯消元的代码逻辑实现。
+👁️ 2. 经典计算机视觉 (Classical CV)
+概念：大津法 (Otsu's Method)实战背景：你的 get_fucking_line 寻找最佳黑白切割线的算法。
+学习重点：什么是“类间方差 (Inter-class Variance)”？为什么让类间方差最大化，就能找到最完美的自适应二值化阈值？
+🌊 3. 信号处理 (Signal Processing)概念：傅里叶变换与低通滤波 (Fourier Transform & Low-Pass Filtering)
+实战背景：把你的“3”糊成“8”的罪魁祸首，但也是消除极细小噪点的神器。
+学习重点：时域/空域（像素点）与频域（波的频率）的转换；什么是高频信号（边缘/噪点）和低频信号（平缓色块）？
+🧮 4. 偏微分方程与泛函 (PDE & Functional Analysis)
+概念：变分法与 ROF 全变分去噪模型 (Calculus of Variations & Total Variation Denoising)
+实战背景：机甲预处理中的顶级净化器，能抹平噪点却不破坏文字边缘。
+学习重点：什么是“泛函 (Functional)”（函数的函数）？ROF 模型中的能量方程是如何通过“梯度下降”来平衡平滑度与保真度的？
+📐 5. 微分几何与拓扑学 (Differential Geometry & Topology)
+概念：曲率与弯曲能量 (Curvature & Curve Energy)
+实战背景：你用来对抗 1D 网络“拉平诅咒”的杀手锏特征。
+学习重点：离散点阵中如何计算局部曲率？为什么方差可以用来衡量像素分布的弯曲程度？
+🎯 6. 概率论与模式识别 (Probability & Pattern Recognition)
+概念：马氏距离 (Mahalanobis Distance)
+实战背景：高维空间中的“神级标尺”。
+学习重点：它和普通的欧氏距离（直线距离）有什么本质区别？什么是“协方差矩阵”，它又是如何消除不同维度之间“尺度差异”的？
