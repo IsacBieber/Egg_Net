@@ -1,0 +1,100 @@
+#pragma once
+#include <vector>
+#include <cmath>
+#include <random>
+#include <chrono>
+#include "matrix.hpp"
+
+using namespace std;
+using db = double;
+
+// 解决多次 include 导致的随机数引擎重定义问题
+inline mt19937_64 rnd(chrono::steady_clock::now().time_since_epoch().count());
+inline uniform_real_distribution<double> dist_rnd(-1.0, 1.0);
+
+struct Layer {
+    db learning_rate;
+    int W_row, B_row;
+    bool linear;
+    Matrix W, B, A;
+    
+    Layer() {}
+    Layer(int W_row, int B_row, bool linear) : W_row(W_row), B_row(B_row), linear(linear) {
+        W.set_size(W_row, B_row);
+        B.set_size(W_row, 1);
+        if (linear) {
+            db limit = sqrt(6.0 / (W_row + B_row)); 
+            for(int i=0; i<W_row; i++)
+                for(int j=0; j<B_row; j++)
+                    W.a[i][j] = dist_rnd(rnd) * limit;
+        }
+    }
+
+    void set_learning_rate(db v) { learning_rate = v; }
+
+    Matrix process(const Matrix& X) {
+        Matrix res = A = X;
+        if (linear) { 
+            res = W * res + B;
+        } else { // RELU
+            for (int i = 0; i < res.row; i ++) {
+                res.a[i][0] = max(res.a[i][0], 0.0);
+            }
+        }
+        return res;
+    }
+
+    Matrix adjust(const Matrix& G) {
+        Matrix new_G = G;
+        if (linear) {
+            new_G = W.transpose() * G;
+            B = B - G * learning_rate; 
+            W = W - (G * A.transpose()) * learning_rate;
+        } else {
+            for (int i = 0; i < G.row; i ++) {
+                new_G.a[i][0] = A.a[i][0] > 0 ? G.a[i][0] : 0;
+            }
+        }
+        return new_G;
+    }
+};
+
+struct Egg_Net {
+    int depth;
+    vector <Layer> l;
+    
+    Egg_Net (vector<int> dims) {
+        depth = (dims.size() - 1) * 2 - 1; 
+        l.resize(depth);
+        int idx = 0;
+        for (int i = 0; i < dims.size() - 1; i ++) {
+            l[idx] = Layer(dims[i+1], dims[i], true); 
+            l[idx].set_learning_rate(0.01); 
+            idx++;
+            if (i < dims.size() - 2) {
+                l[idx] = Layer(dims[i+1], dims[i+1], false); 
+                l[idx].set_learning_rate(0.01);
+                idx++;
+            }
+        }
+    }
+
+    Matrix forward(Matrix X) {
+        for (int i = 0; i < depth; i ++) {
+            X = l[i].process(X);
+        }
+        return X;
+    }
+
+    void backward(Matrix G) {
+        for (int i = depth - 1; i >= 0; i --) {
+            G = l[i].adjust(G);
+        }
+    }
+};
+
+inline db get_mse_loss(const Matrix& diff) {
+    db res = 0;
+    for(int i=0; i<diff.row; i++) res += diff.a[i][0] * diff.a[i][0];
+    return res * 0.5;
+}

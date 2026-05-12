@@ -1,3 +1,17 @@
+# 1. 忽略所有编译产生的垃圾和二进制文件
+build/
 *.exe
+*.o
+*.obj
+
+# 2. 忽略巨型数据集和压缩包 (绝对不能传！)
+*.csv
+*.gz
+*.zip
+
+# 3. 忽略本地缓存和 VS Code 配置
 .vscode/
-output/
+
+# 4. 忽略模型权重和测试图，只传纯代码
+egg_net_v1.txt
+my_number.png
