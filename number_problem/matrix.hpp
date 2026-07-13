@@ -1,8 +1,11 @@
 #pragma once
-#include <vector>
+#include <bits/stdc++.h>
 
 using namespace std;
 using db = double;
+
+inline mt19937_64 rnd(chrono::steady_clock::now().time_since_epoch().count());
+inline uniform_real_distribution<double> dist_rnd(-1.0, 1.0);
 
 struct Matrix {
     int row, column;
@@ -16,6 +19,14 @@ struct Matrix {
     void set_size(int r, int c) {
         row = r, column = c;
         a.assign(r, vector<db>(c, 0));
+    }
+
+    void randomize() {
+        for (int i = 0; i < row; i ++) {
+            for (int j = 0; j < column; j ++) {
+                a[i][j] = dist_rnd(rnd);
+            }
+        }
     }
 
     void all_set(db k) {

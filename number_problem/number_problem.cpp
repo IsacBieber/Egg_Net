@@ -6,13 +6,14 @@
 #include "matrix.hpp"
 #include "vision_features.hpp"
 #include "egg_net.hpp"
+#include "watermelon.hpp" // 引入你的统计学神兵！
 
 using namespace std;
 
 int main(void) 
 {
     system("chcp 65001 > nul");
-    cout << "[*] 终极 EGG_NET 深度学习机甲启动，核反应堆全开 ..." << endl;
+    cout << "[*] 终极 EGG_NET 深度学习机甲 + 西瓜引擎 联合启动 ..." << endl;
 
     int train_size = 6000;
     int test_size = 4000;
@@ -21,23 +22,61 @@ int main(void)
     vector<Image> dataset = load_mnist_csv("mnist_train.csv", total_size); 
     cout << "[+] 成功装载 " << dataset.size() << " 张图片！火力准备就绪！" << endl;
     
-    vector<Matrix> X_train, Y_train;
+    // ==========================================
+    // 阶段一：西瓜农场培育 (只使用训练集)
+    // ==========================================
+    cout << "[*] 正在扫描前 " << train_size << " 张图的 3D 核心几何特征，准备种西瓜..." << endl;
+    vector<vector<Matrix>> features_by_label(10);
     
-    cout << "[*] 正在萃取前 " << train_size << " 张图的 787 维融合特征 (算力狂飙中，请稍候...) ..." << endl;
     for (int i = 0; i < train_size; i++) {
+        // 第一遍扫描，先把底层去噪做了
         MathMagic::apply_fft_filter(dataset[i], 12); 
         MathMagic::apply_tv_denoising(dataset[i], 0.05, 30);
         
-        Matrix X(787, 1); 
+        Matrix X_core(3, 1);
+        X_core.a[0][0] = VisionFeatures::count_components(dataset[i]);
+        X_core.a[1][0] = VisionFeatures::get_quotient(dataset[i]);           
+        X_core.a[2][0] = VisionFeatures::curve_enegy(dataset[i]);     
+        
+        features_by_label[dataset[i].label].push_back(X_core);
+    }
+
+    cout << "[*] 正在计算 3D 协方差与马氏距离边界 ..." << endl;
+    vector<StatMagic::Watermelon> farm(10);
+    for (int k = 0; k < 10; k++) {
+        farm[k].grow(k, features_by_label[k]);
+    }
+    cout << "[+] 10 个高维西瓜引力场部署完毕！" << endl;
+
+    // ==========================================
+    // 阶段二：萃取 794 维终极融合特征
+    // ==========================================
+    vector<Matrix> X_train, Y_train;
+    cout << "[*] 正在萃取 794 维终极神级特征 (像素 + 西瓜概率) ..." << endl;
+    
+    for (int i = 0; i < train_size; i++) {
+        Matrix X(794, 1); 
         int idx = 0;
+        
+        // 1. 装填 784 维原生像素
         for(int r = 0; r < 28; r++) {
             for(int c = 0; c < 28; c++) {
                 X.a[idx++][0] = dataset[i].pixels[r][c] / 255.0; 
             }
         }
-        X.a[idx++][0] = VisionFeatures::count_components(dataset[i]) / 3.0; 
-        X.a[idx++][0] = VisionFeatures::get_quotient(dataset[i]);           
-        X.a[idx++][0] = VisionFeatures::curve_enegy(dataset[i]) / 10.0;     
+        
+        // 2. 重新提取 3D 核心特征
+        Matrix X_core(3, 1);
+        X_core.a[0][0] = VisionFeatures::count_components(dataset[i]);
+        X_core.a[1][0] = VisionFeatures::get_quotient(dataset[i]);           
+        X_core.a[2][0] = VisionFeatures::curve_enegy(dataset[i]);
+        
+        // 3. 终极融合：注入 10 个西瓜的引力评分！
+        for(int k = 0; k < 10; k++) {
+            double d2 = farm[k].get_distance(X_core);
+            // 魔法公式：将距离的平方用高斯核压缩到 0~1 的概率区间
+            X.a[idx++][0] = exp(-d2 / 2.0); 
+        }
         
         X_train.push_back(X);
 
@@ -46,14 +85,14 @@ int main(void)
         Y_train.push_back(Y);
     }
 
-    Egg_Net egg({787, 64, 10}, "CE");
-
-    // 【新增】：尝试开机加载记忆！
+    // ==========================================
+    // 阶段三：Egg_Net 点火训练 (注意输入维度变 794，并开启 CE 模式)
+    // ==========================================
+    Egg_Net egg({794, 64, 10}, "CE");
     bool has_memory = ModelIO::load_model(egg, "egg_net_v1.txt");
 
-    // 如果没有记忆，才去进行那地狱般的 100 轮训练！
     if (!has_memory) {
-        cout << "\n[*] EGG_NET 引擎点火！开始 100 轮地狱梯度下降！" << endl;
+        cout << "\n[*] EGG_NET 引擎点火！开始 100 轮交叉熵梯度狂飙！" << endl;
         int epochs = 100; 
         
         for (int epoch = 1; epoch <= epochs; epoch++) {
@@ -63,18 +102,9 @@ int main(void)
             for (int i = 0; i < X_train.size(); i++) {
                 Matrix Pred = egg.forward(X_train[i]);
                 
-                // --- 奇迹发生的地方 ---
-                db current_loss = 0;
-                if (egg.loss_type == "CE") {
-                    // 传进去的是无边界的狂野得分，出来的是温顺的概率分布 Pred
-                    current_loss = get_loss_ce(Pred, Y_train[i]); 
-                } else {
-                    Matrix diff = Pred - Y_train[i];
-                    current_loss = get_loss_mse(diff);
-                }
-                total_loss += current_loss;
+                // 原地洗牌计算 CE 损失 (注意 get_loss_ce 是昨天让你在 egg_net.hpp 加的)
+                total_loss += egg.loss_type == "CE" ? get_loss_ce(Pred, Y_train[i]) : get_loss_mse(Pred - Y_train[i]);
                 
-                // 因为 Pred 如果是 CE 模式已经被洗成了概率，并不影响这里的 max 判断
                 int best_guess = 0;
                 db max_p = Pred.a[0][0];
                 for(int k = 1; k < 10; k++) {
@@ -85,43 +115,48 @@ int main(void)
                 }
                 if (best_guess == dataset[i].label) correct++;
 
-                // 梯度回传：Softmax + CE 的数学奇迹，不管多复杂，偏导永远是干净利落的 P - Y
                 Matrix G = Pred - Y_train[i];
                 egg.backward(G); 
             }
             
             if (epoch % 5 == 0 || epoch == 1) {
                 cout << "=> Epoch [" << epoch << "/" << epochs << "] | "
-                    << "网络混沌度(Loss): " << fixed << setprecision(4) << total_loss / X_train.size() << " | "
-                    << "训练集制裁率(Acc): " << fixed << setprecision(2) << (correct * 100.0 / X_train.size()) << " %" << endl;
+                    << "网络混沌度: " << fixed << setprecision(4) << total_loss / X_train.size() << " | "
+                    << "训练集统治率: " << fixed << setprecision(2) << (correct * 100.0 / X_train.size()) << " %" << endl;
             }
         }
-        
-        cout << "\n[!!!] 训练集炼丹大功告成！高维边界已锁定！" << endl;
-        
-        // 【新增】：训练完了，赶紧把神功保存下来！
         ModelIO::save_model(egg, "egg_net_v1.txt");
-    } else {
-        cout << "\n[*] 侦测到满级账号，已直接跳过 100 轮训练期！" << endl;
     }
-    
-    cout << "\n[*] 正在准备期末考试卷... 提取后 " << test_size << " 张绝对未知数据的特征..." << endl;
+
+    // ==========================================
+    // 阶段四：期末大考 (将西瓜制裁应用到测试集)
+    // ==========================================
+    cout << "\n[*] 正在准备期末考试卷... 提取测试集 794 维神级特征..." << endl;
     int test_correct = 0;
     
     for (int i = train_size; i < total_size; i ++) {
         MathMagic::apply_fft_filter(dataset[i], 12); 
         MathMagic::apply_tv_denoising(dataset[i], 0.05, 30);
         
-        Matrix X_test(787, 1); 
+        Matrix X_test(794, 1); 
         int idx = 0;
         for(int r = 0; r < 28; r++) {
             for(int c = 0; c < 28; c++) {
                 X_test.a[idx++][0] = dataset[i].pixels[r][c] / 255.0;
             }
         }
-        X_test.a[idx++][0] = VisionFeatures::count_components(dataset[i]) / 3.0; 
-        X_test.a[idx++][0] = VisionFeatures::get_quotient(dataset[i]);           
-        X_test.a[idx++][0] = VisionFeatures::curve_enegy(dataset[i]) / 10.0;     
+        
+        // 核心 3D 特征提取
+        Matrix X_core(3, 1);
+        X_core.a[0][0] = VisionFeatures::count_components(dataset[i]);
+        X_core.a[1][0] = VisionFeatures::get_quotient(dataset[i]);           
+        X_core.a[2][0] = VisionFeatures::curve_enegy(dataset[i]);
+        
+        // 感受 10 个西瓜在考场上的引力
+        for(int k = 0; k < 10; k++) {
+            double d2 = farm[k].get_distance(X_core);
+            X_test.a[idx++][0] = exp(-d2 / 2.0); 
+        }
         
         Matrix Pred = egg.forward(X_test);
         
@@ -133,12 +168,11 @@ int main(void)
                 best_guess = k;
             }
         }
-        
         if (best_guess == dataset[i].label) test_correct++;
     }
 
     cout << "======================================" << endl;
-    cout << "【最终 4000 张大考成绩报告】" << endl;
+    cout << "【最终 " << test_size << " 张大考成绩报告】" << endl;
     cout << "测试样本量: " << test_size << " 张 (网络绝对没见过的数据)" << endl;
     cout << "盲猜成功数: " << test_correct << " 张" << endl;
     cout << "真实泛化准确率: " << fixed << setprecision(2) << (test_correct * 100.0 / test_size) << " %" << endl;
