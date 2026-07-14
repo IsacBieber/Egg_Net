@@ -29,7 +29,9 @@ def loss_function(predict, target):
     return (predict[0, 0] - target[0, 0]) ** 2
 
 # ==============get a model================
+device = "cpu"
 egg = Egg()
+egg.to(device)
 egg.apply(init_weights)
 
 # ==============prepare datas==============
@@ -52,8 +54,11 @@ for i in range(10000):
     # ===========predict(forward)===========
     test_idx = random.randint(0, 3)
 
-    predict = egg(torch.tensor(x[test_idx]))
-    target = torch.tensor(y[test_idx])
+    X = torch.tensor(x[test_idx]).to(device)
+    Y = torch.tensor(y[test_idx]).to(device)
+
+    predict = egg(X)
+    target = Y
 
     # ===========backward===================
     loss = loss_function(predict, target)
@@ -68,7 +73,7 @@ for i in range(10000):
 # ================test loop===================
 correct = 0
 for i in range(4):
-    # ===========predict(forward)===========
+# ================predict(forward)============
     predict = egg(torch.tensor(x[i]))
     target = torch.tensor(y[i])
     
