@@ -1,24 +1,26 @@
 import torch
 import torch.nn as nn
 import random
-import math
 # ================model===================
 # define layers and forward process
 class Egg(nn.Module):
     def __init__(self):
         super().__init__()
-        self.trans = nn.Sequential(
-            nn.Linear(2, 2),
+        self.normal = nn.Sequential(
+            nn.Linear(2, 4),
             nn.ReLU(),
-            nn.Linear(2, 1)
+            nn.Linear(4, 1)
         )
-        # output shape : [2, 1] 
-        # out[0, 0] is answer
-        # out[0, 1] is useless
 
     def forward(self, x):
         # x shape : [1, 2]
-        return self.trans(x)
+        return self.normal(x)
+
+# ================init weights=============
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        nn.init.uniform_(m.weight, -0.5, 0.5)
+        nn.init.uniform_(m.bias, -0.5, 0.5)
 
 # ================loss=====================
 # define loss_function
@@ -28,6 +30,7 @@ def loss_function(predict, target):
 
 # ==============get a model================
 egg = Egg()
+egg.apply(init_weights)
 
 # ==============prepare datas==============
 x = []
@@ -35,14 +38,13 @@ y = []
 for i in range(2):
     for j in range(2):
         x.append([[i * 1.0, j * 1.0]])
-        y.append([[float(i ^ j), 0.0]])
+        y.append([[float(i ^ j)]])
 
 # ==============train loop=================
 # back propagation = backward + optimizer
 # backward : calcualte the gradient
 # optimizer : use gradient and update
-
-opt = torch.optim.Adam(egg.parameters(), lr=0.05)
+opt = torch.optim.Adam(egg.parameters(), lr=0.01)
 for i in range(10000):
     # ==========init gradient===============
     opt.zero_grad()
@@ -65,22 +67,17 @@ for i in range(10000):
 
 # ================test loop===================
 correct = 0
-for i in range(100):
-    # ==========init gradient===============
-    opt.zero_grad()
-
+for i in range(4):
     # ===========predict(forward)===========
-    test_idx = random.randint(0, 3)
-
-    predict = egg(torch.tensor(x[test_idx]))
-    target = torch.tensor(y[test_idx])
+    predict = egg(torch.tensor(x[i]))
+    target = torch.tensor(y[i])
     
-    if math.sqrt(loss_function(predict, target)) < 1e-5:
+    if torch.sqrt(loss_function(predict, target)) < 1e-5:
         correct = correct + 1
         print("Accept!")
     else:
         print("Wrong Answer!")
 
-print(correct / 100)    
+print(correct / 4)    
 
     
